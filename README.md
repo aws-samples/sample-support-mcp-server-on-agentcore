@@ -216,7 +216,7 @@ Write tools (`create_support_case`, `add_communication_to_case`, `resolve_suppor
 
 ## Disclaimer
 
-This is sample code intended to demonstrate how to host an MCP server on Amazon Bedrock AgentCore and integrate it with Kiro. Review it against your organization's security, identity and operational requirements before using it in production.
+This repository contains **sample code for demonstration purposes and is not production-ready as-is**. It shows how to host an MCP server on Amazon Bedrock AgentCore and integrate it with Kiro. Before any production use, review and adapt it to your organization's security, identity, compliance and operational requirements (for example IdP hardening, access restrictions via claims, logging and monitoring, and change management for the execution role's permissions).
 
 ## Security issue notifications
 

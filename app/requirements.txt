@@ -1,5 +1,8 @@
-boto3>=1.38.19
+# Top-level runtime dependencies, pinned to the versions the sample was built and tested with.
+# The full resolved set (including transitive dependencies) is in requirements.lock,
+# which build.sh installs from so that every build ships the same packages.
+boto3==1.43.89
 fastmcp==3.4.3
-loguru>=0.7.3
-pydantic>=2.11
-uvicorn>=0.34
+loguru==0.7.3
+pydantic==2.13.5
+uvicorn==0.52.4

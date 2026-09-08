@@ -26,7 +26,10 @@ from awslabs.aws_support_mcp_server.server import mcp  # noqa: E402
 def main() -> None:
     mcp.run(
         transport="http",
-        host="0.0.0.0",
+        # AgentCore Runtime contract: the MCP server must listen on 0.0.0.0:8000 inside the
+        # Runtime microVM; the only route to it is the Runtime's authenticated invocation API
+        # (see module docstring). Not a public bind.
+        host="0.0.0.0",  # nosec B104
         port=int(os.environ.get("PORT", "8000")),
         path="/mcp",
         stateless_http=True,
