@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="Kiro-Support-MCP-on-AgentCore">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="700" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Open AWS Support cases from Kiro: AWS Support MCP Server on Amazon Bedrock AgentCore" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Developers need no IAM credentials and no Console access; identity comes from the corporate IdP, Support permissions live in one execution role" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#545B64;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="900" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- Developer side -->
+        <mxCell id="devlane" value="Developer workstations" style="swimlane;startSize=30;fillColor=#F2F3F3;strokeColor=#879196;fontColor=#232F3E;fontStyle=1;pointerEvents=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="260" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="kiro" value="Kiro IDE / CLI&#xa;&#xa;mcp.json: url + oauth.clientId&#xa;(or Kiro MCP Registry)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="devlane">
+          <mxGeometry x="30" y="60" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="nocreds" value="✗ No AWS credentials&#xa;✗ No Console access&#xa;✓ Sign in once with the corporate account" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#545B64;" vertex="1" parent="devlane">
+          <mxGeometry x="30" y="180" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="github" value="Kiro product bugs&#xa;→ Report Issue button&#xa;→ GitHub Issues (unchanged)" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="devlane">
+          <mxGeometry x="30" y="270" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- IdP -->
+        <mxCell id="idp" value="Corporate IdP (Okta / Entra ID / Cognito ...)&#xa;&#xa;+1 OIDC public client (PKCE)&#xa;Kiro sign-in via Identity Center untouched" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="120" width="320" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- AWS account -->
+        <mxCell id="awslane" value="Customer AWS account (Business / Enterprise Support) · one CloudFormation template" style="swimlane;startSize=30;fillColor=#FFFFFF;strokeColor=#FF9900;strokeWidth=2;fontColor=#232F3E;fontStyle=1;pointerEvents=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="280" width="960" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="gw" value="AgentCore Gateway&#xa;&#xa;Inbound: CUSTOM_JWT authorizer&#xa;(IdP discovery URL + client_id or audience)&#xa;HTTPS /mcp endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="awslane">
+          <mxGeometry x="40" y="60" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rt" value="AgentCore Runtime&#xa;&#xa;hosts awslabs&#xa;aws-support-mcp-server&#xa;(direct code deploy, no container,&#xa;streamable-HTTP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="awslane">
+          <mxGeometry x="380" y="60" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="role" value="Execution role (the only principal holding support:* permissions)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#B7472A;fontStyle=2;" vertex="1" parent="awslane">
+          <mxGeometry x="340" y="184" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="support" value="AWS Support API&#xa;&#xa;Cases are created in this account&#xa;(visible in Support Center)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="awslane">
+          <mxGeometry x="720" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- edges -->
+        <mxCell id="e1" value="① First use: browser sign-in&#xa;(OAuth 2.0 code + PKCE)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#9673a6;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="kiro" target="idp">
+          <mxGeometry x="-0.45" y="-14" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="② Every request: Bearer JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#6c8ebf;strokeWidth=2;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="kiro" target="gw">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="250" />
+              <mxPoint x="360" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="validate via JWKS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;dashed=1;strokeColor=#9673a6;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="gw" target="idp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="③ SigV4&#xa;(Gateway role)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#d79b00;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="awslane" source="gw" target="rt">
+          <mxGeometry y="-22" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="④ call with&#xa;execution role" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#82b366;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="awslane" source="rt" target="support">
+          <mxGeometry y="-22" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

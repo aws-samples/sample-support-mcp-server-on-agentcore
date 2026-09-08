@@ -1,0 +1,322 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  AWS Support MCP Server hosted on Amazon Bedrock AgentCore (Runtime + Gateway).
+  Lets Kiro users open/track AWS Support cases without IAM credentials or Console
+  access: Kiro authenticates the developer against your OIDC IdP (OAuth 2.0 PKCE),
+  AgentCore Gateway validates the JWT, and a single execution role holds the
+  Support API permissions. Requires a Business/Enterprise On-Ramp/Enterprise
+  Support plan on this account for case operations to succeed.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: '1. Code package (built with build.sh, uploaded to S3 in THIS account/region)' }
+        Parameters: [CodeS3Bucket, CodeS3Key]
+      - Label: { default: '2. Identity provider for Kiro users' }
+        Parameters: [IdentityProviderMode, OidcDiscoveryUrl, OidcClientId, OidcAudience, KiroCallbackPort, DemoUserEmail]
+      - Label: { default: '3. Naming' }
+        Parameters: [RuntimeName, GatewayName]
+    ParameterLabels:
+      IdentityProviderMode: { default: 'IdP mode' }
+      OidcDiscoveryUrl: { default: 'OIDC discovery URL (ExternalOIDC mode)' }
+      OidcClientId: { default: 'OIDC client ID (ExternalOIDC mode)' }
+
+Parameters:
+  CodeS3Bucket:
+    Type: String
+    Description: S3 bucket (same account & region) holding support-mcp-agentcore.zip
+  CodeS3Key:
+    Type: String
+    Default: support-mcp-agentcore.zip
+  IdentityProviderMode:
+    Type: String
+    Default: ExternalOIDC
+    AllowedValues: [ExternalOIDC, DemoCognito]
+    Description: >-
+      ExternalOIDC = use your corporate IdP (Okta/Entra/...): register a PUBLIC OIDC
+      client (PKCE, no secret, redirect http://localhost:<port>/oauth/callback) and
+      supply its discovery URL + client ID. DemoCognito = create a Cognito user pool
+      for evaluation only.
+  OidcDiscoveryUrl:
+    Type: String
+    Default: ''
+    Description: e.g. https://<tenant>.okta.com/oauth2/default/.well-known/openid-configuration
+  OidcClientId:
+    Type: String
+    Default: ''
+    Description: >-
+      OIDC client ID registered for Kiro (always required; emitted into the Kiro mcp.json output). Gateway validates it
+      against the token's client_id claim unless OidcAudience is set (Okta puts the client ID in a cid claim, so set OidcAudience).
+  OidcAudience:
+    Type: String
+    Default: ''
+    Description: >-
+      Optional. Expected aud claim of the access token (required for Okta; e.g. api://default or your
+      custom authorization server audience). When set, the Gateway validates aud instead of client_id.
+  KiroCallbackPort:
+    Type: Number
+    Default: 8080
+    Description: Loopback port Kiro listens on for the OAuth redirect (DemoCognito mode registers it as callback URL)
+  DemoUserEmail:
+    Type: String
+    Default: ''
+    Description: (DemoCognito) optional first user; a temporary password is emailed by Cognito
+  RuntimeName:
+    Type: String
+    Default: awsSupportMcp
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]{0,47}$'
+  GatewayName:
+    Type: String
+    Default: aws-support-mcp
+    AllowedPattern: '^[0-9a-zA-Z][0-9a-zA-Z-]{0,47}$'
+
+Conditions:
+  UseCognito: !Equals [!Ref IdentityProviderMode, DemoCognito]
+  UseAudience: !And [!Not [!Condition UseCognito], !Not [!Equals [!Ref OidcAudience, '']]]
+  CreateDemoUser: !And [!Condition UseCognito, !Not [!Equals [!Ref DemoUserEmail, '']]]
+
+Rules:
+  ExternalOidcNeedsValues:
+    RuleCondition: !Equals [!Ref IdentityProviderMode, ExternalOIDC]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref OidcDiscoveryUrl, '']]
+        AssertDescription: OidcDiscoveryUrl is required in ExternalOIDC mode
+      - Assert: !Not [!Equals [!Ref OidcClientId, '']]
+        AssertDescription: OidcClientId is required in ExternalOIDC mode (Kiro needs it for the OAuth flow; for Okta also set OidcAudience so the Gateway validates aud instead of client_id)
+
+Resources:
+  # ---------------------------------------------------------------- Cognito (demo only)
+  DemoUserPool:
+    Type: AWS::Cognito::UserPool
+    Condition: UseCognito
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-kiro-users'
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy: { MinimumLength: 12, RequireUppercase: true, RequireLowercase: true, RequireNumbers: true, RequireSymbols: false }
+      UserPoolTier: ESSENTIALS
+
+  DemoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Condition: UseCognito
+    Properties:
+      UserPoolId: !Ref DemoUserPool
+      Domain: !Sub
+        - 'support-mcp-${Suffix}'
+        - Suffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+
+  DemoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Condition: UseCognito
+    Properties:
+      ClientName: kiro
+      UserPoolId: !Ref DemoUserPool
+      GenerateSecret: false                       # Kiro IDE supports public (PKCE) clients only
+      SupportedIdentityProviders: [COGNITO]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      CallbackURLs:
+        - !Sub 'http://localhost:${KiroCallbackPort}/oauth/callback'
+        - !Sub 'http://127.0.0.1:${KiroCallbackPort}/oauth/callback'
+      ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits: { AccessToken: minutes, IdToken: minutes, RefreshToken: days }
+
+  DemoUser:
+    Type: AWS::Cognito::UserPoolUser
+    Condition: CreateDemoUser
+    Properties:
+      UserPoolId: !Ref DemoUserPool
+      Username: !Ref DemoUserEmail
+      DesiredDeliveryMediums: [EMAIL]
+      UserAttributes:
+        - { Name: email, Value: !Ref DemoUserEmail }
+        - { Name: email_verified, Value: 'true' }
+
+  # ---------------------------------------------------------------- Runtime (hosts the MCP server)
+  RuntimeExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-runtime-exec'
+      Description: Assumed by AgentCore Runtime; the ONLY principal holding Support API permissions
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: bedrock-agentcore.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { 'aws:SourceAccount': !Ref AWS::AccountId }
+              ArnLike: { 'aws:SourceArn': !Sub 'arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:*' }
+      Policies:
+        - PolicyName: support-api
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: SupportCaseLifecycle
+                Effect: Allow
+                Action:
+                  - support:CreateCase
+                  - support:DescribeCases
+                  - support:DescribeCommunications
+                  - support:AddCommunicationToCase
+                  - support:ResolveCase
+                  - support:AddAttachmentsToSet
+                  - support:DescribeAttachment
+                Resource: '*'
+              - Sid: SupportCatalogLookups
+                Effect: Allow
+                Action:
+                  - support:DescribeServices
+                  - support:DescribeSeverityLevels
+                  - support:DescribeCreateCaseOptions
+                  - support:DescribeSupportedLanguages
+                Resource: '*'
+        - PolicyName: agentcore-runtime-baseline
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CodePackage
+                Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${CodeS3Bucket}/${CodeS3Key}'
+              - Effect: Allow
+                Action: [logs:DescribeLogStreams, logs:CreateLogGroup]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*'
+              - Effect: Allow
+                Action: [logs:PutResourcePolicy]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimeName}-*'
+              - Effect: Allow
+                Action: [logs:DescribeLogGroups]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*'
+              - Effect: Allow
+                Action: [xray:PutTraceSegments, xray:PutTelemetryRecords, xray:GetSamplingRules, xray:GetSamplingTargets]
+                Resource: '*'
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals: { 'cloudwatch:namespace': bedrock-agentcore }
+
+  SupportMcpRuntime:
+    Type: AWS::BedrockAgentCore::Runtime
+    Properties:
+      AgentRuntimeName: !Ref RuntimeName
+      Description: awslabs aws-support-mcp-server served over stateless streamable-HTTP
+      RoleArn: !GetAtt RuntimeExecutionRole.Arn
+      ProtocolConfiguration: MCP
+      NetworkConfiguration: { NetworkMode: PUBLIC }
+      AgentRuntimeArtifact:
+        CodeConfiguration:
+          Code:
+            S3: { Bucket: !Ref CodeS3Bucket, Prefix: !Ref CodeS3Key }
+          EntryPoint: [main.py]
+          Runtime: PYTHON_3_12
+      EnvironmentVariables:
+        SUPPORT_API_REGION: us-east-1        # Support API endpoint lives in us-east-1 (aws partition)
+        FASTMCP_LOG_LEVEL: INFO
+
+  # ---------------------------------------------------------------- Gateway (JWT front door for Kiro)
+  GatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-gateway'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: bedrock-agentcore.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { 'aws:SourceAccount': !Ref AWS::AccountId }
+              ArnLike: { 'aws:SourceArn': !Sub 'arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:*' }
+      Policies:
+        - PolicyName: invoke-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: bedrock-agentcore:InvokeAgentRuntime
+                Resource:
+                  - !GetAtt SupportMcpRuntime.AgentRuntimeArn
+                  - !Sub '${SupportMcpRuntime.AgentRuntimeArn}/*'
+
+  SupportMcpGateway:
+    Type: AWS::BedrockAgentCore::Gateway
+    Properties:
+      Name: !Ref GatewayName
+      Description: Kiro -> (OAuth JWT) -> Gateway -> (SigV4) -> Runtime-hosted AWS Support MCP
+      ProtocolType: MCP
+      RoleArn: !GetAtt GatewayRole.Arn
+      AuthorizerType: CUSTOM_JWT
+      AuthorizerConfiguration:
+        CustomJWTAuthorizer:
+          DiscoveryUrl: !If
+            - UseCognito
+            - !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${DemoUserPool}/.well-known/openid-configuration'
+            - !Ref OidcDiscoveryUrl
+          AllowedClients: !If
+            - UseAudience
+            - !Ref AWS::NoValue
+            - - !If [UseCognito, !Ref DemoUserPoolClient, !Ref OidcClientId]
+          AllowedAudience: !If
+            - UseAudience
+            - [!Ref OidcAudience]
+            - !Ref AWS::NoValue
+
+  SupportMcpTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !GetAtt SupportMcpGateway.GatewayIdentifier
+      Name: aws-support
+      Description: AWS Support MCP server on AgentCore Runtime
+      TargetConfiguration:
+        Mcp:
+          McpServer:
+            Endpoint: !Sub
+              - 'https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/arn%3A${AWS::Partition}%3Abedrock-agentcore%3A${AWS::Region}%3A${AWS::AccountId}%3Aruntime%2F${RuntimeId}/invocations?qualifier=DEFAULT'
+              - RuntimeId: !GetAtt SupportMcpRuntime.AgentRuntimeId
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+          CredentialProvider:
+            IamCredentialProvider:
+              Service: bedrock-agentcore
+              Region: !Ref AWS::Region
+
+Outputs:
+  GatewayUrl:
+    Description: Put this in Kiro mcp.json as "url"
+    Value: !GetAtt SupportMcpGateway.GatewayUrl
+  OidcClientIdInUse:
+    Description: Put this in Kiro mcp.json as oauth.clientId
+    Value: !If [UseCognito, !Ref DemoUserPoolClient, !Ref OidcClientId]
+  DiscoveryUrlInUse:
+    Value: !If
+      - UseCognito
+      - !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${DemoUserPool}/.well-known/openid-configuration'
+      - !Ref OidcDiscoveryUrl
+  CognitoHostedDomain:
+    Condition: UseCognito
+    Value: !Sub 'https://${DemoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
+  RuntimeArn:
+    Value: !GetAtt SupportMcpRuntime.AgentRuntimeArn
+  RuntimeExecutionRoleArn:
+    Description: The only principal with Support API permissions
+    Value: !GetAtt RuntimeExecutionRole.Arn
+  KiroMcpJson:
+    Description: Paste into ~/.kiro/settings/mcp.json (or distribute via Kiro MCP Registry)
+    Value: !Sub
+      - '{"mcpServers":{"aws-support":{"url":"${Url}","oauth":{"clientId":"${Cid}","redirectUri":"localhost:${KiroCallbackPort}","oauthScopes":[${Scopes}]}}}}'
+      - Url: !GetAtt SupportMcpGateway.GatewayUrl
+        Cid: !If [UseCognito, !Ref DemoUserPoolClient, !Ref OidcClientId]
+        Scopes: !If [UseCognito, '"openid","email","profile"', '"openid","email","profile","offline_access"']

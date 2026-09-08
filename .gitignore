@@ -1,0 +1,19 @@
+# Build output (code package is built locally and uploaded to S3)
+dist/
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local secrets / test artifacts
+.demo-credentials
+.env
+.env.*
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/

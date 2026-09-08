@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "aws-support": {
+      "url": "https://<gateway-id>.gateway.bedrock-agentcore.<region>.amazonaws.com/mcp",
+      "oauth": {
+        "clientId": "<oidc-public-client-id>",
+        "redirectUri": "localhost:8080",
+        "oauthScopes": ["openid", "email", "profile", "offline_access"]
+      },
+      "autoApprove": [
+        "aws-support___describe_services",
+        "aws-support___describe_severity_levels",
+        "aws-support___describe_create_case_options",
+        "aws-support___describe_supported_languages",
+        "aws-support___describe_support_cases",
+        "aws-support___describe_communications"
+      ]
+    }
+  }
+}
