@@ -1,5 +1,7 @@
 ---
 inclusion: auto
+name: aws-support-cases
+description: Opening, tracking, replying to or closing AWS Support cases from Kiro through the aws-support MCP tools (not Kiro product bugs)
 ---
 # Opening AWS Support cases from Kiro (aws-support MCP)
 
