@@ -7,7 +7,10 @@ You need: Kiro, your corporate account, and the `aws-support` entry in your Kiro
 ## One-time: sign in
 
 1. Add the snippet from IT to `~/.kiro/settings/mcp.json` (or select the server in the registry).
-2. Open Kiro's **MCP Servers** panel, find `aws-support`, and click **Authenticate**. A browser window opens with your company's sign-in page.
+2. Open Kiro's **MCP Servers** panel, find `aws-support`, and click **Authenticate**. A browser window opens. Depending on how IT set it up you see one of:
+   - your company's own sign-in page (corporate IdP such as Okta or Entra ID);
+   - the AWS access portal (IAM Identity Center) directly — sign in there as you do for Kiro itself;
+   - an Amazon Cognito page asking for e-mail and password — use the temporary password IT e-mailed you (type your address in lower case); the first sign-in asks you to set a new one.
 3. After signing in you are redirected back to Kiro. The server shows as connected and lists 11 `aws-support___*` tools. The token is stored in Kiro's secret storage and refreshed automatically.
 
 > Kiro does **not** open the browser on its own at startup for OAuth-protected servers — until you click **Authenticate** the server appears unauthenticated or disconnected. This is a one-time step.
@@ -49,4 +52,5 @@ Write tools (`create_support_case`, `add_communication_to_case`, `resolve_suppor
 |---|---|---|
 | Browser opens, but the redirect fails or times out after ~60 s | `oauth.redirectUri` in `mcp.json` was written as a full URL. Kiro IDE expects **`host:port`** (e.g. `localhost:8080`) and falls back to a random port otherwise, which no longer matches the IdP registration. | Use `"redirectUri": "localhost:<port>"`. The IdP keeps the full `http://localhost:<port>/oauth/callback`. |
 | Server shows *disconnected* right after Kiro starts and nothing happens | Kiro starts OAuth servers passively and only opens the browser when you trigger authentication. | Click **Authenticate** in the MCP Servers panel once. |
+| Sign-in through IAM Identity Center succeeds but the Cognito page then shows an error, or the browser never returns to Kiro | You are not assigned to the *AWS Support from Kiro* application in Identity Center, or a standalone user with your e-mail address still exists in the pool. | Ask IT to assign you to the application (and to remove or link the old standalone user). |
 | After clicking Authenticate the browser lands on an IdP error page (e.g. `BadRequest`), and Kiro's log shows *Opening authorization URL* a minute late | Kiro's discovery requests to the IdP went out over IPv6 and hung. Some VPN clients install an unreachable IPv6 default route; most IdPs publish AAAA records. | Check with `curl -6 -m 5 https://<idp-host>/`. If it hangs, disconnect the VPN or have IT fix the IPv6 route policy. |

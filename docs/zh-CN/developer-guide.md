@@ -7,7 +7,10 @@
 ## 一次性：登录
 
 1. 把 IT 给的片段加到 `~/.kiro/settings/mcp.json`（或在 registry 里选中该服务）。
-2. 打开 Kiro 的 **MCP Servers** 面板，找到 `aws-support`，点 **Authenticate**。浏览器打开公司登录页。
+2. 打开 Kiro 的 **MCP Servers** 面板，找到 `aws-support`，点 **Authenticate**。浏览器会打开，根据 IT 的配置你会看到下面之一：
+   - 公司自己的登录页（Okta、Entra ID 等企业 IdP）；
+   - 直接进入 AWS 访问门户（IAM Identity Center）——像登录 Kiro 本身那样登录即可；
+   - 一个 Amazon Cognito 页面要你输入邮箱和密码——用 IT 邮件发给你的临时密码（邮箱请用小写），首次登录会要求设置新密码。
 3. 登录后跳回 Kiro。服务显示为已连接，并列出 11 个 `aws-support___*` 工具。令牌存在 Kiro 的安全存储里并自动刷新。
 
 > 对于 OAuth 保护的服务，Kiro **不会**在启动时自己打开浏览器；在你点 **Authenticate** 之前，服务会显示未认证或未连接。这是一次性操作。
@@ -49,4 +52,5 @@
 |---|---|---|
 | 浏览器打开了，但跳转失败或约 60 秒后超时 | `mcp.json` 里的 `oauth.redirectUri` 写成了完整 URL。Kiro IDE 期望的是 **`host:port`**（如 `localhost:8080`），否则会退回随机端口，与 IdP 注册的不再匹配。 | 用 `"redirectUri": "localhost:<port>"`。IdP 侧保留完整的 `http://localhost:<port>/oauth/callback`。 |
 | Kiro 刚启动服务就显示 *disconnected*，之后没动静 | Kiro 被动启动 OAuth 服务，只在你触发认证时才打开浏览器。 | 在 MCP Servers 面板点一次 **Authenticate**。 |
+| 通过 IAM Identity Center 登录成功了，但随后 Cognito 页面报错，或浏览器一直没跳回 Kiro | 你没有被分配到 Identity Center 里的 *AWS Support from Kiro* 应用，或者用户池里还留着一个同邮箱的独立用户。 | 请 IT 把你分配到该应用（并删除或关联那个旧的独立用户）。 |
 | 点 Authenticate 后浏览器落到 IdP 错误页（如 `BadRequest`），Kiro 日志里 *Opening authorization URL* 晚了一分钟 | Kiro 对 IdP 的 discovery 请求走了 IPv6 并挂起。某些 VPN 客户端会装一条不可达的 IPv6 默认路由，而多数 IdP 发布了 AAAA 记录。 | 用 `curl -6 -m 5 https://<idp-host>/` 检查。如果挂起，断开 VPN 或让 IT 修 IPv6 路由策略。 |

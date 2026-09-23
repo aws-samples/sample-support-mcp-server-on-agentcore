@@ -2,24 +2,28 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   AWS Support MCP Server hosted on Amazon Bedrock AgentCore (Runtime + Gateway).
   Lets Kiro users open/track AWS Support cases without IAM credentials or Console
-  access: Kiro authenticates the developer against your OIDC IdP (OAuth 2.0 PKCE),
-  AgentCore Gateway validates the JWT, and a single execution role holds the
-  Support API permissions. Requires a Business/Enterprise On-Ramp/Enterprise
-  Support plan on this account for case operations to succeed.
+  access: Kiro authenticates the developer against your identity provider (OAuth 2.0
+  PKCE) - a corporate OIDC IdP, or a Cognito user pool created by this template that
+  can federate to IAM Identity Center (SAML 2.0) - AgentCore Gateway validates the JWT,
+  and a single execution role holds the Support API permissions. Requires a Business/
+  Enterprise On-Ramp/Enterprise Support plan on this account for case operations to succeed.
 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label: { default: '1. Code package (built with build.sh, uploaded to S3 in THIS account/region)' }
-        Parameters: [CodeS3Bucket, CodeS3Key]
+        Parameters: [CodeS3Bucket, CodeS3Key, CodeS3ObjectVersion]
       - Label: { default: '2. Identity provider for Kiro users' }
-        Parameters: [IdentityProviderMode, OidcDiscoveryUrl, OidcClientId, OidcAudience, KiroCallbackPort, DemoUserEmail]
+        Parameters: [IdentityProviderMode, OidcDiscoveryUrl, OidcClientId, OidcAudience, KiroCallbackPort, CognitoFirstUserEmail, SamlMetadataUrl, SamlProviderName]
       - Label: { default: '3. Naming' }
         Parameters: [RuntimeName, GatewayName]
     ParameterLabels:
       IdentityProviderMode: { default: 'IdP mode' }
       OidcDiscoveryUrl: { default: 'OIDC discovery URL (ExternalOIDC mode)' }
       OidcClientId: { default: 'OIDC client ID (ExternalOIDC mode)' }
+      CognitoFirstUserEmail: { default: 'First user e-mail (Cognito mode, standalone users)' }
+      SamlMetadataUrl: { default: 'SAML metadata URL of IAM Identity Center / SAML IdP (Cognito mode, federation)' }
+      SamlProviderName: { default: 'SAML provider name (Cognito mode, federation)' }
 
 Parameters:
   CodeS3Bucket:
@@ -28,15 +32,23 @@ Parameters:
   CodeS3Key:
     Type: String
     Default: support-mcp-agentcore.zip
+  CodeS3ObjectVersion:
+    Type: String
+    Default: ''
+    Description: >-
+      Optional. S3 object version ID of the code package. Set it (deploy.sh does so automatically when the
+      bucket has versioning enabled) so that re-uploading under the same key rolls the Runtime to the new
+      package. Empty = the latest version of the object at deployment time.
   IdentityProviderMode:
     Type: String
     Default: ExternalOIDC
-    AllowedValues: [ExternalOIDC, DemoCognito]
+    AllowedValues: [ExternalOIDC, Cognito, DemoCognito]
     Description: >-
-      ExternalOIDC = use your corporate IdP (Okta/Entra/...): register a PUBLIC OIDC
-      client (PKCE, no secret, redirect http://localhost:<port>/oauth/callback) and
-      supply its discovery URL + client ID. DemoCognito = create a Cognito user pool
-      for evaluation only.
+      ExternalOIDC = your corporate OIDC IdP (Okta/Entra/...): register a PUBLIC client (PKCE, no secret,
+      redirect http://localhost:<port>/oauth/callback) and supply OidcDiscoveryUrl + OidcClientId.
+      Cognito = a Cognito user pool created by this template, either with standalone users that administrators
+      create (scripts/cognito-add-users.sh) or federated to IAM Identity Center / any SAML 2.0 IdP when
+      SamlMetadataUrl is set. DemoCognito = the v1.0 name of the Cognito mode, still accepted.
   OidcDiscoveryUrl:
     Type: String
     Default: ''
@@ -56,11 +68,26 @@ Parameters:
   KiroCallbackPort:
     Type: Number
     Default: 8080
-    Description: Loopback port Kiro listens on for the OAuth redirect (DemoCognito mode registers it as callback URL)
-  DemoUserEmail:
+    Description: Loopback port Kiro listens on for the OAuth redirect (Cognito mode registers it as callback URL)
+  CognitoFirstUserEmail:
     Type: String
     Default: ''
-    Description: (DemoCognito) optional first user; a temporary password is emailed by Cognito
+    Description: >-
+      (Cognito mode, standalone users) optional first user; Cognito e-mails a temporary password.
+      Add more users with scripts/cognito-add-users.sh. Not used when SamlMetadataUrl is set.
+  SamlMetadataUrl:
+    Type: String
+    Default: ''
+    Description: >-
+      (Cognito mode) optional. SAML 2.0 metadata URL of the IAM Identity Center customer managed application
+      (or another SAML IdP) that signs users in. When set, the app client accepts federated sign-in only.
+      Two-pass setup: deploy without it, create the SAML application in IAM Identity Center from the
+      CognitoSamlAcsUrl / CognitoSamlAudience outputs, then update the stack with this URL.
+  SamlProviderName:
+    Type: String
+    Default: IdentityCenter
+    AllowedPattern: '^[A-Za-z][A-Za-z0-9._-]{0,31}$'
+    Description: (Cognito mode, federation) name of the SAML provider inside the user pool; used as the prefix of federated usernames (<name>_<subject>)
   RuntimeName:
     Type: String
     Default: awsSupportMcp
@@ -71,9 +98,11 @@ Parameters:
     AllowedPattern: '^[0-9a-zA-Z][0-9a-zA-Z-]{0,47}$'
 
 Conditions:
-  UseCognito: !Equals [!Ref IdentityProviderMode, DemoCognito]
+  UseCognito: !Or [!Equals [!Ref IdentityProviderMode, Cognito], !Equals [!Ref IdentityProviderMode, DemoCognito]]
   UseAudience: !And [!Not [!Condition UseCognito], !Not [!Equals [!Ref OidcAudience, '']]]
-  CreateDemoUser: !And [!Condition UseCognito, !Not [!Equals [!Ref DemoUserEmail, '']]]
+  CreateFirstUser: !And [!Condition UseCognito, !Not [!Equals [!Ref CognitoFirstUserEmail, '']]]
+  UseSamlFederation: !And [!Condition UseCognito, !Not [!Equals [!Ref SamlMetadataUrl, '']]]
+  HasCodeVersion: !Not [!Equals [!Ref CodeS3ObjectVersion, '']]
 
 Rules:
   ExternalOidcNeedsValues:
@@ -83,9 +112,16 @@ Rules:
         AssertDescription: OidcDiscoveryUrl is required in ExternalOIDC mode
       - Assert: !Not [!Equals [!Ref OidcClientId, '']]
         AssertDescription: OidcClientId is required in ExternalOIDC mode (Kiro needs it for the OAuth flow; for Okta also set OidcAudience so the Gateway validates aud instead of client_id)
+  SamlNeedsCognitoMode:
+    RuleCondition: !Not [!Equals [!Ref SamlMetadataUrl, '']]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref IdentityProviderMode, ExternalOIDC]]
+        AssertDescription: SamlMetadataUrl applies to Cognito mode only (in ExternalOIDC mode, federation is configured inside your own IdP)
 
 Resources:
-  # ---------------------------------------------------------------- Cognito (demo only)
+  # ---------------------------------------------------------------- Cognito user pool (Cognito / DemoCognito mode)
+  # Logical IDs keep their v1.0 "Demo*" names so that stacks created with v1.0 update in place
+  # (renaming them would replace the user pool and its domain).
   DemoUserPool:
     Type: AWS::Cognito::UserPool
     Condition: UseCognito
@@ -94,7 +130,7 @@ Resources:
       UsernameAttributes: [email]
       AutoVerifiedAttributes: [email]
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: true
+        AllowAdminCreateUserOnly: true            # no self sign-up; federated users are still created on first sign-in
       Policies:
         PasswordPolicy: { MinimumLength: 12, RequireUppercase: true, RequireLowercase: true, RequireNumbers: true, RequireSymbols: false }
       UserPoolTier: ESSENTIALS
@@ -108,6 +144,18 @@ Resources:
         - 'support-mcp-${Suffix}'
         - Suffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
 
+  CognitoSamlIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: UseSamlFederation
+    Properties:
+      UserPoolId: !Ref DemoUserPool
+      ProviderName: !Ref SamlProviderName
+      ProviderType: SAML
+      ProviderDetails:
+        MetadataURL: !Ref SamlMetadataUrl
+      AttributeMapping:
+        email: email                              # SAML attribute "email" (IAM Identity Center mapping ${user:email}) -> user pool email
+
   DemoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Condition: UseCognito
@@ -115,7 +163,10 @@ Resources:
       ClientName: kiro
       UserPoolId: !Ref DemoUserPool
       GenerateSecret: false                       # Kiro IDE supports public (PKCE) clients only
-      SupportedIdentityProviders: [COGNITO]
+      SupportedIdentityProviders: !If
+        - UseSamlFederation
+        - [!Ref CognitoSamlIdentityProvider]      # federated sign-in only: the authorize endpoint redirects straight to the IdP; pool users cannot sign in
+        - [COGNITO]
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows: [code]
       AllowedOAuthScopes: [openid, email, profile]
@@ -131,13 +182,13 @@ Resources:
 
   DemoUser:
     Type: AWS::Cognito::UserPoolUser
-    Condition: CreateDemoUser
+    Condition: CreateFirstUser
     Properties:
       UserPoolId: !Ref DemoUserPool
-      Username: !Ref DemoUserEmail
+      Username: !Ref CognitoFirstUserEmail
       DesiredDeliveryMediums: [EMAIL]
       UserAttributes:
-        - { Name: email, Value: !Ref DemoUserEmail }
+        - { Name: email, Value: !Ref CognitoFirstUserEmail }
         - { Name: email_verified, Value: 'true' }
 
   # ---------------------------------------------------------------- Runtime (hosts the MCP server)
@@ -219,7 +270,10 @@ Resources:
       AgentRuntimeArtifact:
         CodeConfiguration:
           Code:
-            S3: { Bucket: !Ref CodeS3Bucket, Prefix: !Ref CodeS3Key }
+            S3: !If
+              - HasCodeVersion
+              - { Bucket: !Ref CodeS3Bucket, Prefix: !Ref CodeS3Key, VersionId: !Ref CodeS3ObjectVersion }
+              - { Bucket: !Ref CodeS3Bucket, Prefix: !Ref CodeS3Key }
           EntryPoint: [main.py]
           Runtime: PYTHON_3_12
       EnvironmentVariables:
@@ -308,6 +362,18 @@ Outputs:
   CognitoHostedDomain:
     Condition: UseCognito
     Value: !Sub 'https://${DemoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
+  CognitoUserPoolId:
+    Condition: UseCognito
+    Description: (Cognito mode) user pool ID; scripts/cognito-add-users.sh reads it from this output
+    Value: !Ref DemoUserPool
+  CognitoSamlAcsUrl:
+    Condition: UseCognito
+    Description: (Cognito mode) "Application ACS URL" to enter in the IAM Identity Center SAML 2.0 application
+    Value: !Sub 'https://${DemoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/saml2/idpresponse'
+  CognitoSamlAudience:
+    Condition: UseCognito
+    Description: (Cognito mode) "Application SAML audience" to enter in the IAM Identity Center SAML 2.0 application
+    Value: !Sub 'urn:amazon:cognito:sp:${DemoUserPool}'
   RuntimeArn:
     Value: !GetAtt SupportMcpRuntime.AgentRuntimeArn
   RuntimeExecutionRoleArn:
