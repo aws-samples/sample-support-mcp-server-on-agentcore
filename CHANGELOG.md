@@ -7,7 +7,7 @@
 - New `scripts/cognito-add-users.sh`: create standalone Cognito users from a list of e-mail addresses (temporary password by e-mail; `--resend`, `--dry-run`).
 - `deploy.sh` passes the uploaded object's S3 version ID (`CodeS3ObjectVersion`) to the stack, so re-deploying under the same key rolls the Runtime to the new package; "No updates are to be performed" now exits cleanly.
 - `kiro/mcp.json.example` also auto-approves `describe_attachment` (read-only).
-- Documentation: identity-mode comparison, Identity Center walkthrough, upgrade notes, Cognito security notes (English and Simplified Chinese).
+- Documentation: identity-mode comparison, Identity Center walkthrough (including how to check the instance type), upgrade notes, Cognito security notes (English and Simplified Chinese).
 
 ## v1.1 — documentation
 

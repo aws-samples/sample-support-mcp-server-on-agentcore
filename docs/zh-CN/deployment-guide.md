@@ -49,7 +49,7 @@ Kiro 用户始终通过 OAuth 2.0 授权码 + PKCE 登录，Gateway 始终校验
 Identity Center 里客户管理的 SAML 2.0 应用**只能在控制台创建**，而这个应用需要的两个值只有在用户池建好之后才存在，所以是两轮部署：
 
 1. 以 `Cognito` 模式、**不带** `SamlMetadataUrl` 部署堆栈（[第 3 步](#第-3-步--部署堆栈)）。记下输出 `CognitoSamlAcsUrl` 和 `CognitoSamlAudience`。
-2. 在组织实例的 **IAM Identity Center 控制台**（管理账号或委派管理员账号）：**Applications → Add application → I have an application I want to set up → SAML 2.0 → Next**。填一个显示名，如 *AWS Support from Kiro*。复制 **IAM Identity Center SAML metadata file** 的 URL——这就是 `SamlMetadataUrl`。在 **Application metadata** 下选 *Manually type your metadata values*，填 **Application ACS URL** = `CognitoSamlAcsUrl`，**Application SAML audience** = `CognitoSamlAudience`。提交。
+2. 在组织实例的 **IAM Identity Center 控制台**（管理账号或委派管理员账号）：**Applications → Customer managed 标签页 → Add application → I have an application I want to set up → Application type 选 SAML 2.0**（不要选 OAuth 2.0）**→ Next**。填一个显示名，如 *AWS Support from Kiro*。复制 **IAM Identity Center SAML metadata file** 的 URL——这就是 `SamlMetadataUrl`。在 **Application metadata** 下选 *Manually type your metadata values*，填 **Application ACS URL** = `CognitoSamlAcsUrl`，**Application SAML audience** = `CognitoSamlAudience`。提交。
 3. 在该应用上 **Actions → Edit attribute mappings**：保留 `Subject` → `${user:subject}`，格式 *persistent*；新增 `email` → `${user:email}`，格式 *basic*。提交。（模板把 SAML 属性 `email` 映射到用户池的 `email` 属性，助手用它把报告人放进 CC。）
 4. **Assign users and groups**，把用户或组分配给该应用。分配就是你的访问控制层，与 OIDC IdP 里的应用分配完全一样。
 5. 用 `SamlMetadataUrl` 更新堆栈（如果想让联邦用户名的前缀不是 `IdentityCenter`，再加 `SamlProviderName`）。应用客户端从此只接受联邦登录；Gateway 配置和 `KiroMcpJson` 片段都不变。
@@ -59,6 +59,7 @@ Identity Center 里客户管理的 SAML 2.0 应用**只能在控制台创建**�
 注意事项：
 
 - 仅限组织实例（见 Identity Center 文档里的实例类型说明）。如果你的 Identity Center 是账户实例，请用 1a 或 1c。
+- 请直接确认实例类型，不要根据它所在的账号来推断。组织实例的控制台左侧导航里有 **Multi-account permissions**（AWS accounts、Permission sets）；账户实例点 **Add application** 会直接进入 OAuth 2.0 配置向导，没有 SAML 2.0 选项。命令行下，账户实例执行 `aws sso-admin list-permission-sets --instance-arn <instance-arn>` 会报错 *This operation is not supported for account instances of IAM Identity Center*。
 - 如果用户池里已经有同邮箱的独立用户（例如评估阶段建的），切换到联邦前先删掉它们，或用 `aws cognito-idp admin-link-provider-for-user` 关联；否则这些人的联邦登录会因别名冲突失败。
 - 从 Identity Center 应用里移除的用户不能再登录，但其用户池档案会保留到你删除为止；已签发的令牌到过期前仍然有效（模板默认 access token 60 分钟、refresh token 30 天）。
 
