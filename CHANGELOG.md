@@ -7,6 +7,7 @@
 - New `scripts/cognito-add-users.sh`: create standalone Cognito users from a list of e-mail addresses (temporary password by e-mail; `--resend`, `--dry-run`).
 - `deploy.sh` passes the uploaded object's S3 version ID (`CodeS3ObjectVersion`) to the stack, so re-deploying under the same key rolls the Runtime to the new package; "No updates are to be performed" now exits cleanly.
 - `kiro/mcp.json.example` also auto-approves `describe_attachment` (read-only).
+- Dependencies: `pyjwt` 2.13.0 → 2.15.1 and `urllib3` 2.7.0 → 2.8.0 in `app/requirements.lock` (published security advisories); no other package changes.
 - Documentation: identity-mode comparison, Identity Center walkthrough (including how to check the instance type), upgrade notes, Cognito security notes (English and Simplified Chinese).
 
 ## v1.1 — documentation
