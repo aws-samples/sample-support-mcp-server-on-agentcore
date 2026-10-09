@@ -162,6 +162,6 @@ Cognito 模式下片段不含 `offline_access` scope（Cognito 不需要它就�
 
 - **日志**：Runtime 日志在 CloudWatch 的 `/aws/bedrock-agentcore/runtimes/<runtime-id>-*` 下。Kiro 里用 *Show MCP Logs*。
 - **排障**：Gateway 返回 `401` 是令牌或 IdP 配置问题；`421`/`5xx` 是 Runtime 问题。
-- **升级服务**：用同样的参数再跑一次 `./deploy.sh`。脚本上传新代码包，并把上传对象的版本 ID（`CodeS3ObjectVersion`）传给堆栈，因此即使对象键名不变，Runtime 也会滚动到新代码。不用脚本时，自己传新的版本 ID，或者换一个 `CodeS3Key` 上传。没有任何变化时 CloudFormation 会回答 "No updates are to be performed"，脚本正常退出。
+- **升级服务**：用同样的参数再跑一次 `./deploy.sh`。脚本上传新代码包，并把上传对象的版本 ID（`CodeS3ObjectVersion`）传给堆栈，因此即使对象键名不变，Runtime 也会滚动到新代码。不用脚本时，自己传新的版本 ID，或者换一个 `CodeS3Key` 上传。脚本每次运行都会重新上传代码包；在开启了版本控制的桶里（`deploy.sh` 自己创建的桶默认开启），每次上传都会得到新的版本 ID，所以即使代码没变，每次运行也会让 Runtime 滚动到一个新版本。只有在未开启版本控制的桶里、且其他参数都没变时，CloudFormation 才会回答 "No updates are to be performed"，此时脚本正常退出。
 - **成本**：AgentCore Runtime 按活跃处理时间计费，Gateway 按调用计费，没有常驻费用——见 AgentCore 定价页。Cognito 模式下再加 Amazon Cognito：独立用户免费额度很大，联邦（SAML）用户的免费额度小得多（撰写时为每月 50 个活跃用户），超出后按用户计费——见 Cognito 定价页。
 - **卸载**：删除堆栈（Cognito 模式下会连用户池和其中所有档案一起删除）。你创建的 S3 存储桶自行删除；注意 `deploy.sh` 给它建的桶开了版本控制，`delete-bucket` 前要清空所有对象版本和删除标记（`aws s3api list-object-versions` + `delete-objects`）。

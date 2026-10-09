@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.2 — unreleased
+## v1.2 — Identity Center federation, Cognito mode, dependency updates
 
 - **IAM Identity Center support** (Cognito mode): set `SamlMetadataUrl` (and optionally `SamlProviderName`) to federate the template's Cognito user pool to a customer managed SAML 2.0 application in IAM Identity Center — organization instances only — or to any other SAML 2.0 IdP. New outputs `CognitoUserPoolId`, `CognitoSamlAcsUrl`, `CognitoSamlAudience` provide the values the Identity Center application needs. Two-pass deployment; see the deployment guide, step 1b.
 - `IdentityProviderMode=Cognito` replaces `DemoCognito` (the old value is still accepted). Parameter `DemoUserEmail` is renamed `CognitoFirstUserEmail` (`deploy.sh` still honours `DEMO_USER_EMAIL`). Resource logical IDs are unchanged, so v1.0 stacks update in place.
