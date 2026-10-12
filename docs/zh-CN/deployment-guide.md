@@ -160,7 +160,7 @@ Cognito 模式下片段不含 `offline_access` scope（Cognito 不需要它就�
 
 ## 运维
 
-- **日志**：Runtime 日志在 CloudWatch 的 `/aws/bedrock-agentcore/runtimes/<runtime-id>-*` 下。Kiro 里用 *Show MCP Logs*。
+- **日志**：Runtime 日志在 CloudWatch 的 `/aws/bedrock-agentcore/runtimes/<runtime-id>-*` 下。Kiro 里用 *Show MCP Logs*。服务默认按 `INFO` 级别记日志，由模板里 Runtime 的环境变量 `FASTMCP_LOG_LEVEL` 控制；只在排查问题时临时改成 `DEBUG`，因为 debug 日志里会有请求参数，比如工单 ID 和工单标题。
 - **排障**：Gateway 返回 `401` 是令牌或 IdP 配置问题；`421`/`5xx` 是 Runtime 问题。
 - **升级服务**：用同样的参数再跑一次 `./deploy.sh`。脚本上传新代码包，并把上传对象的版本 ID（`CodeS3ObjectVersion`）传给堆栈，因此即使对象键名不变，Runtime 也会滚动到新代码。不用脚本时，自己传新的版本 ID，或者换一个 `CodeS3Key` 上传。脚本每次运行都会重新上传代码包；在开启了版本控制的桶里（`deploy.sh` 自己创建的桶默认开启），每次上传都会得到新的版本 ID，所以即使代码没变，每次运行也会让 Runtime 滚动到一个新版本。只有在未开启版本控制的桶里、且其他参数都没变时，CloudFormation 才会回答 "No updates are to be performed"，此时脚本正常退出。
 - **成本**：AgentCore Runtime 按活跃处理时间计费，Gateway 按调用计费，没有常驻费用——见 AgentCore 定价页。Cognito 模式下再加 Amazon Cognito：独立用户免费额度很大，联邦（SAML）用户的免费额度小得多（撰写时为每月 50 个活跃用户），超出后按用户计费——见 Cognito 定价页。

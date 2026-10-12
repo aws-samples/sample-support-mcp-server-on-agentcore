@@ -13,12 +13,25 @@ Do not run this entrypoint exposed on a network outside AgentCore Runtime.
 """
 
 import os
+import sys
+
+from loguru import logger
 
 # AWS Support is an account-level service whose standard-partition endpoint lives
 # in us-east-1. Pin the boto3 region for the Support client regardless of the
 # region AgentCore Runtime is deployed in. Override with SUPPORT_API_REGION.
 os.environ["AWS_REGION"] = os.environ.get("SUPPORT_API_REGION", "us-east-1")
 os.environ.pop("AWS_PROFILE", None)  # always use the Runtime execution role
+
+# The upstream package configures loguru at DEBUG when it is imported, and upstream
+# server.main() lowers it to INFO unless --debug. This entrypoint bypasses server.main(), so
+# apply the same default after the package import and before the server module (which
+# creates the Support client) is imported. DEBUG logs request parameters such as case IDs
+# and subjects. FASTMCP_LOG_LEVEL (set by the template) controls these logs and FastMCP's own.
+import awslabs.aws_support_mcp_server  # noqa: E402,F401
+
+logger.remove()
+logger.add(sys.stderr, level=os.environ.get("FASTMCP_LOG_LEVEL", "INFO"))
 
 from awslabs.aws_support_mcp_server.server import mcp  # noqa: E402
 
