@@ -1,8 +1,9 @@
 """AgentCore Runtime entrypoint for the AWS Support MCP Server.
 
-Wraps the unmodified awslabs.aws-support-mcp-server (v0.1.23, awslabs/mcp@e9f2439)
-and serves it over stateless streamable-HTTP on 0.0.0.0:8000/mcp, which is the
-contract AgentCore Runtime expects for MCP protocol runtimes.
+Wraps awslabs.aws-support-mcp-server (v0.1.23, awslabs/mcp@e9f2439; vendored with one
+logging change, see THIRD-PARTY-LICENSES) and serves it over stateless streamable-HTTP
+on 0.0.0.0:8000/mcp, which is the contract AgentCore Runtime expects for MCP protocol
+runtimes.
 
 Upstream hard-codes stdio transport in server.main(); we import the FastMCP
 instance and run it with the HTTP transport instead. No tool code is changed.

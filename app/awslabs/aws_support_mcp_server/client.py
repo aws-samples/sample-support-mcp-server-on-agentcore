@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# This file is a modified copy of awslabs/mcp src/aws-support-mcp-server (v0.1.23).
+# Modification: the credential check no longer logs any part of the AWS access key ID.
+# See THIRD-PARTY-LICENSES at the repository root.
 """AWS Support API client for the AWS Support MCP Server."""
 
 import asyncio
@@ -74,9 +78,10 @@ class SupportClient:
             try:
                 credentials = session.get_credentials()
                 if credentials:
-                    logger.info(
-                        f'AWS credentials found: access_key_id={credentials.access_key[:4]}***'
-                    )
+                    # Modified in sample-support-mcp-server-on-agentcore: log only that credentials
+                    # were resolved and which provider supplied them, never any part of the access
+                    # key ID (upstream logged its first four characters).
+                    logger.info(f'AWS credentials found (provider={credentials.method})')
                 else:
                     logger.warning('No AWS credentials found in session')
             except Exception as cred_err:

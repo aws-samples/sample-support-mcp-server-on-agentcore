@@ -8,6 +8,7 @@
 - `deploy.sh` passes the uploaded object's S3 version ID (`CodeS3ObjectVersion`) to the stack, so re-deploying under the same key rolls the Runtime to the new package; "No updates are to be performed" now exits cleanly.
 - `kiro/mcp.json.example` also auto-approves `describe_attachment` (read-only).
 - `app/main.py` sets the server's log level to `INFO` (from `FASTMCP_LOG_LEVEL`), matching the upstream server's default. v1.0 bypassed the upstream `main()` and therefore logged at `DEBUG`, which writes request parameters such as case IDs and subjects to CloudWatch.
+- Vendored `awslabs.aws-support-mcp-server`: the credential check in `client.py` now logs only that credentials were resolved and the provider that supplied them, not the first characters of the access key ID. This is the only change to the vendored package; it is marked in the file and in `THIRD-PARTY-LICENSES`.
 - Dependencies: `pyjwt` 2.13.0 → 2.15.1 and `urllib3` 2.7.0 → 2.8.0 in `app/requirements.lock` (published security advisories); no other package changes.
 - Documentation: identity-mode comparison, Identity Center walkthrough (including how to check the instance type), upgrade notes, Cognito security notes (English and Simplified Chinese).
 
