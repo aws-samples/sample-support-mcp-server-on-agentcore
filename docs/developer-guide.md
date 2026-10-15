@@ -15,6 +15,8 @@ You need: Kiro, your corporate account, and the `aws-support` entry in your Kiro
 
 > Kiro does **not** open the browser on its own at startup for OAuth-protected servers — until you click **Authenticate** the server appears unauthenticated or disconnected. This is a one-time step.
 
+> Kiro waits about 60 seconds for the browser sign-in to finish. A first Cognito sign-in that includes setting a new password can take longer; if the browser then shows *localhost refused to connect*, close that tab and click **Authenticate** once more — you are already signed in, so it completes in a few seconds. Click **Authenticate** once and use only the most recently opened sign-in tab.
+
 ## Submit a case
 
 Describe the problem in the Kiro chat, for example:
@@ -50,6 +52,7 @@ Write tools (`create_support_case`, `add_communication_to_case`, `resolve_suppor
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| After setting a new password the browser shows *localhost refused to connect*, or a later tab says *This authorization request has expired or already completed* | Kiro stopped waiting (about 60 s) before the first sign-in finished, or an older sign-in tab completed after a newer one | Close all sign-in tabs and click **Authenticate** once; the second attempt completes in seconds because you are already signed in. |
 | Browser opens, but the redirect fails or times out after ~60 s | `oauth.redirectUri` in `mcp.json` was written as a full URL. Kiro IDE expects **`host:port`** (e.g. `localhost:8080`) and falls back to a random port otherwise, which no longer matches the IdP registration. | Use `"redirectUri": "localhost:<port>"`. The IdP keeps the full `http://localhost:<port>/oauth/callback`. |
 | Server shows *disconnected* right after Kiro starts and nothing happens | Kiro starts OAuth servers passively and only opens the browser when you trigger authentication. | Click **Authenticate** in the MCP Servers panel once. |
 | Sign-in through IAM Identity Center succeeds but the Cognito page then shows an error, or the browser never returns to Kiro | You are not assigned to the *AWS Support from Kiro* application in Identity Center, or a standalone user with your e-mail address still exists in the pool. | Ask IT to assign you to the application (and to remove or link the old standalone user). |

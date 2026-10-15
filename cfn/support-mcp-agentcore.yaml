@@ -132,7 +132,7 @@ Resources:
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true            # no self sign-up; federated users are still created on first sign-in
       Policies:
-        PasswordPolicy: { MinimumLength: 12, RequireUppercase: true, RequireLowercase: true, RequireNumbers: true, RequireSymbols: false }
+        PasswordPolicy: { MinimumLength: 8, RequireUppercase: true, RequireLowercase: true, RequireNumbers: true, RequireSymbols: true }   # same rules as the IAM Identity Center directory
       UserPoolTier: ESSENTIALS
 
   DemoUserPoolDomain:

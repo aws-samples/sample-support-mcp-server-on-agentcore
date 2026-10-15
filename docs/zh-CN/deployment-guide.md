@@ -71,7 +71,7 @@ Identity Center 里客户管理的 SAML 2.0 应用**只能在控制台创建**�
 scripts/cognito-add-users.sh --stack support-mcp-agentcore --region us-east-1 users.txt   # 每行一个邮箱
 ```
 
-每个用户会收到一封临时密码邮件，首次登录必须改成自己的密码（12 位以上，含大写、小写和数字）。脚本会把邮箱统一转成小写，而用户池区分大小写，所以请用户输入小写邮箱。这些用户是**第二套凭证**，不与你的目录同步：有人离职时，要在目录里禁用，*同时*在用户池里禁用（`aws cognito-idp admin-disable-user`）。该模式适合评估和小规模试点；上百人请用 1a 或 1b。加固选项：在用户池上开启 TOTP MFA（`MfaConfiguration`），在模板里收紧密码策略。
+每个用户会收到一封临时密码邮件，首次登录必须改成自己的密码（8 位以上，含大写、小写、数字和符号，与 IAM Identity Center 目录的密码规则相同）。脚本会把邮箱统一转成小写，而用户池区分大小写，所以请用户输入小写邮箱。这些用户是**第二套凭证**，不与你的目录同步：有人离职时，要在目录里禁用，*同时*在用户池里禁用（`aws cognito-idp admin-disable-user`）。该模式适合评估和小规模试点；上百人请用 1a 或 1b。加固选项：在用户池上开启 TOTP MFA（`MfaConfiguration`），在模板里收紧密码策略。
 
 ## 第 2 步 — 构建代码包
 

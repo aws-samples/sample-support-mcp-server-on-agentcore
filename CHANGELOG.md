@@ -9,6 +9,8 @@
 - `kiro/mcp.json.example` also auto-approves `describe_attachment` (read-only).
 - `app/main.py` sets the server's log level to `INFO` (from `FASTMCP_LOG_LEVEL`), matching the upstream server's default. v1.0 bypassed the upstream `main()` and therefore logged at `DEBUG`, which writes request parameters such as case IDs and subjects to CloudWatch.
 - Vendored `awslabs.aws-support-mcp-server`: the credential check in `client.py` now logs only that credentials were resolved and the provider that supplied them, not the first characters of the access key ID. This is the only change to the vendored package; it is marked in the file and in `THIRD-PARTY-LICENSES`.
+- Cognito mode password policy now matches the IAM Identity Center directory (8+ characters with upper-case, lower-case, a digit and a symbol; previously 12+ without a symbol requirement). Existing stacks update in place.
+- Developer guide: what to do when a first sign-in takes longer than Kiro's sign-in wait (about 60 seconds).
 - Dependencies: `pyjwt` 2.13.0 → 2.15.1 and `urllib3` 2.7.0 → 2.8.0 in `app/requirements.lock` (published security advisories); no other package changes.
 - Documentation: identity-mode comparison, Identity Center walkthrough (including how to check the instance type), upgrade notes, Cognito security notes (English and Simplified Chinese).
 

@@ -15,6 +15,8 @@
 
 > 对于 OAuth 保护的服务，Kiro **不会**在启动时自己打开浏览器；在你点 **Authenticate** 之前，服务会显示未认证或未连接。这是一次性操作。
 
+> Kiro 大约只等 60 秒让浏览器完成登录。首次 Cognito 登录要设置新密码，可能超过这个时间；如果改完密码浏览器显示 *localhost 拒绝连接*，关掉这个页面，回 Kiro 再点一次 **Authenticate**——此时你已登录，几秒内就会完成。只点一次 **Authenticate**，并且只使用最新打开的那个登录页。
+
 ## 提交工单
 
 在 Kiro 对话里描述问题，例如：
@@ -50,6 +52,7 @@
 
 | 现象 | 原因 | 解决 |
 |---|---|---|
+| 改完密码后浏览器显示 *localhost 拒绝连接*，或另一个页面提示 *This authorization request has expired or already completed* | 首次登录超过了 Kiro 约 60 秒的等待时间，或者旧的登录页在新的之后才完成 | 关掉所有登录页，回 Kiro 只点一次 **Authenticate**；因为已经登录过，第二次几秒就完成。 |
 | 浏览器打开了，但跳转失败或约 60 秒后超时 | `mcp.json` 里的 `oauth.redirectUri` 写成了完整 URL。Kiro IDE 期望的是 **`host:port`**（如 `localhost:8080`），否则会退回随机端口，与 IdP 注册的不再匹配。 | 用 `"redirectUri": "localhost:<port>"`。IdP 侧保留完整的 `http://localhost:<port>/oauth/callback`。 |
 | Kiro 刚启动服务就显示 *disconnected*，之后没动静 | Kiro 被动启动 OAuth 服务，只在你触发认证时才打开浏览器。 | 在 MCP Servers 面板点一次 **Authenticate**。 |
 | 通过 IAM Identity Center 登录成功了，但随后 Cognito 页面报错，或浏览器一直没跳回 Kiro | 你没有被分配到 Identity Center 里的 *AWS Support from Kiro* 应用，或者用户池里还留着一个同邮箱的独立用户。 | 请 IT 把你分配到该应用（并删除或关联那个旧的独立用户）。 |

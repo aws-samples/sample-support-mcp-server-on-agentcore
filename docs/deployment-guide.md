@@ -71,7 +71,7 @@ Deploy in `Cognito` mode with `CognitoFirstUserEmail` set to the first user ([St
 scripts/cognito-add-users.sh --stack support-mcp-agentcore --region us-east-1 users.txt   # one address per line
 ```
 
-Each user receives a temporary password by e-mail and must set a new one at first sign-in (12+ characters with upper-case, lower-case and digits). Addresses are lower-cased by the script and the pool is case-sensitive, so ask users to type their address in lower case. These users are a **second set of credentials** that is not synchronized with your directory: when someone leaves, disable them in your directory *and* in the pool (`aws cognito-idp admin-disable-user`). This mode suits evaluations and small pilots; for hundreds of users prefer 1a or 1b. Hardening options: enable TOTP MFA on the pool (`MfaConfiguration`), and tighten the password policy in the template.
+Each user receives a temporary password by e-mail and must set a new one at first sign-in (8+ characters with upper-case, lower-case, a digit and a symbol, the same rules as the IAM Identity Center directory). Addresses are lower-cased by the script and the pool is case-sensitive, so ask users to type their address in lower case. These users are a **second set of credentials** that is not synchronized with your directory: when someone leaves, disable them in your directory *and* in the pool (`aws cognito-idp admin-disable-user`). This mode suits evaluations and small pilots; for hundreds of users prefer 1a or 1b. Hardening options: enable TOTP MFA on the pool (`MfaConfiguration`), and tighten the password policy in the template.
 
 ## Step 2 — Build the code package
 
