@@ -12,7 +12,7 @@ Enterprise Support entitlements are account-level, but filing a case normally ne
 
 1. Kiro connects to the Gateway URL; on first use the developer signs in to the corporate IdP in the browser (OAuth 2.0 authorization code + PKCE, public client, no secret on developer machines).
 2. Every MCP request carries the resulting JWT. The Gateway validates it (`CUSTOM_JWT` authorizer) and forwards the call to the Runtime with its own IAM role (SigV4).
-3. The Runtime hosts the vendored `awslabs.aws-support-mcp-server` (one logging line changed, see [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES)) behind a ~30-line streamable-HTTP entrypoint ([`app/main.py`](app/main.py)).
+3. The Runtime hosts the vendored `awslabs.aws-support-mcp-server` (only log messages changed, see [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES)) behind a ~30-line streamable-HTTP entrypoint ([`app/main.py`](app/main.py)).
 4. The Runtime **execution role** is the only principal with Support API permissions. Cases appear in Support Center like any other case.
 
 Kiro sign-in itself is untouched, and Kiro product bugs still go through Kiro's built-in **Report Issue** channel. This sample is for cases that need your AWS Support plan.

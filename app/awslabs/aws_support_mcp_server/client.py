@@ -13,7 +13,9 @@
 # limitations under the License.
 #
 # This file is a modified copy of awslabs/mcp src/aws-support-mcp-server (v0.1.23).
-# Modification: the credential check no longer logs any part of the AWS access key ID.
+# Modifications (logging only): the credential check no longer logs any part of the AWS
+# access key ID; the create-case and describe-cases debug messages no longer include the
+# case subject or the query values.
 # See THIRD-PARTY-LICENSES at the repository root.
 """AWS Support API client for the AWS Support MCP Server."""
 
@@ -267,7 +269,9 @@ class SupportClient:
             if attachment_set_id:
                 kwargs['attachmentSetId'] = attachment_set_id
 
-            logger.debug(f'Creating support case: {subject}')
+            # Modified in sample-support-mcp-server-on-agentcore: the case subject is user content
+            # and is not written to logs.
+            logger.debug('Creating support case')
             response = await self._run_in_executor(self.client.create_case, **kwargs)
 
             logger.info(f'Created support case: {response["caseId"]}')
@@ -335,7 +339,9 @@ class SupportClient:
             if next_token:
                 kwargs['nextToken'] = next_token
 
-            logger.debug(f'Describing support cases: {kwargs}')
+            # Modified in sample-support-mcp-server-on-agentcore: log which filters are set, not
+            # their values (case IDs, display ID and time range are user input).
+            logger.debug(f'Describing support cases (filters: {sorted(kwargs)})')
             response = await self._run_in_executor(self.client.describe_cases, **kwargs)
 
             logger.info(f'Retrieved {len(response.get("cases", []))} support cases')

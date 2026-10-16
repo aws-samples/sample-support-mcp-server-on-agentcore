@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# This file is a modified copy of awslabs/mcp src/aws-support-mcp-server (v0.1.23).
+# Modification (logging only): the create-case log message no longer includes the case subject.
+# See THIRD-PARTY-LICENSES at the repository root.
 """AWS Support MCP Server implementation."""
 
 import argparse
@@ -223,7 +227,9 @@ async def _create_support_case_logic(
     """Business logic for creating a new AWS Support case."""
     try:
         # Create the case
-        logger.info(f'Creating support case: {subject}')
+        # Modified in sample-support-mcp-server-on-agentcore: the case subject is user content
+        # and is not written to logs.
+        logger.info('Creating support case')
         response = await support_client.create_case(
             subject=subject,
             service_code=service_code,

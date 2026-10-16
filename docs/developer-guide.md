@@ -52,6 +52,7 @@ Write tools (`create_support_case`, `add_communication_to_case`, `resolve_suppor
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| After clicking Authenticate no sign-in page opens and Kiro's MCP log shows *fetch failed* | A VPN client on the machine interferes with the connection to the sign-in endpoints | Disconnect the VPN, click **Authenticate**, and reconnect after signing in; or ask IT to exclude the sign-in domains (for Cognito: `*.amazoncognito.com`, `cognito-idp.<region>.amazonaws.com`) from the VPN. |
 | After setting a new password the browser shows *localhost refused to connect*, or a later tab says *This authorization request has expired or already completed* | Kiro stopped waiting (about 60 s) before the first sign-in finished, or an older sign-in tab completed after a newer one | Close all sign-in tabs and click **Authenticate** once; the second attempt completes in seconds because you are already signed in. |
 | Browser opens, but the redirect fails or times out after ~60 s | `oauth.redirectUri` in `mcp.json` was written as a full URL. Kiro IDE expects **`host:port`** (e.g. `localhost:8080`) and falls back to a random port otherwise, which no longer matches the IdP registration. | Use `"redirectUri": "localhost:<port>"`. The IdP keeps the full `http://localhost:<port>/oauth/callback`. |
 | Server shows *disconnected* right after Kiro starts and nothing happens | Kiro starts OAuth servers passively and only opens the browser when you trigger authentication. | Click **Authenticate** in the MCP Servers panel once. |

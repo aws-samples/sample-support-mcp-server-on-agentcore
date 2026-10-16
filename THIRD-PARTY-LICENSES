@@ -5,9 +5,11 @@ awslabs.aws-support-mcp-server, version 0.1.23
   Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
   License: Apache License 2.0 (see app/awslabs/LICENSE)
   Location in this repository: app/awslabs/
-  Modifications: one. aws_support_mcp_server/client.py no longer logs any part of the AWS
-  access key ID when it checks for credentials (upstream logs the first four characters);
-  the change is marked in the file header and inline. Everything else is an unmodified copy.
+  Modifications (logging only, in aws_support_mcp_server/client.py and server.py): the
+  credential check no longer logs any part of the AWS access key ID (upstream logs the first
+  four characters); the create-case and describe-cases log messages no longer include the
+  case subject or the query values. Each change is marked in the file header and inline.
+  Everything else is an unmodified copy.
 
 Declared runtime dependencies (installed by build.sh from PyPI, not vendored):
   boto3, fastmcp, loguru, pydantic, uvicorn

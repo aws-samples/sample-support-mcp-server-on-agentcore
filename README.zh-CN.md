@@ -14,7 +14,7 @@ Enterprise Support 是账号级权益，但提单通常要有控制台权限或�
 
 1. Kiro 连接 Gateway 地址；首次使用时开发者在浏览器里向企业 IdP 登录（OAuth 2.0 授权码 + PKCE，公开客户端，开发者机器上没有 secret）。
 2. 每个 MCP 请求带着拿到的 JWT。Gateway 校验它（`CUSTOM_JWT` 授权器），再用自己的 IAM 角色（SigV4）把调用转给 Runtime。
-3. Runtime 托管 vendored 的 `awslabs.aws-support-mcp-server`（只改了一行日志，见 [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES)），前面只有约 30 行的 streamable-HTTP 入口（[`app/main.py`](app/main.py)）。
+3. Runtime 托管 vendored 的 `awslabs.aws-support-mcp-server`（只改了日志内容，见 [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES)），前面只有约 30 行的 streamable-HTTP 入口（[`app/main.py`](app/main.py)）。
 4. Runtime 的**执行角色**是唯一拥有 Support API 权限的主体。工单在 Support Center 里和其他工单一样可见。
 
 Kiro 自身的登录不动；Kiro 产品 bug 仍走 Kiro 内置的 **Report Issue** 渠道。本示例针对需要走你的 AWS Support 计划的工单。

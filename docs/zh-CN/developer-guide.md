@@ -52,6 +52,7 @@
 
 | 现象 | 原因 | 解决 |
 |---|---|---|
+| 点 Authenticate 后没有打开登录页，Kiro 的 MCP 日志显示 *fetch failed* | 本机的 VPN 客户端干扰了到登录地址的连接 | 断开 VPN，点 **Authenticate**，登录完成后再连上；或者请 IT 把登录域名（Cognito 为 `*.amazoncognito.com`、`cognito-idp.<region>.amazonaws.com`）加入 VPN 例外。 |
 | 改完密码后浏览器显示 *localhost 拒绝连接*，或另一个页面提示 *This authorization request has expired or already completed* | 首次登录超过了 Kiro 约 60 秒的等待时间，或者旧的登录页在新的之后才完成 | 关掉所有登录页，回 Kiro 只点一次 **Authenticate**；因为已经登录过，第二次几秒就完成。 |
 | 浏览器打开了，但跳转失败或约 60 秒后超时 | `mcp.json` 里的 `oauth.redirectUri` 写成了完整 URL。Kiro IDE 期望的是 **`host:port`**（如 `localhost:8080`），否则会退回随机端口，与 IdP 注册的不再匹配。 | 用 `"redirectUri": "localhost:<port>"`。IdP 侧保留完整的 `http://localhost:<port>/oauth/callback`。 |
 | Kiro 刚启动服务就显示 *disconnected*，之后没动静 | Kiro 被动启动 OAuth 服务，只在你触发认证时才打开浏览器。 | 在 MCP Servers 面板点一次 **Authenticate**。 |

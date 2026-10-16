@@ -1,7 +1,7 @@
 """AgentCore Runtime entrypoint for the AWS Support MCP Server.
 
-Wraps awslabs.aws-support-mcp-server (v0.1.23, awslabs/mcp@e9f2439; vendored with one
-logging change, see THIRD-PARTY-LICENSES) and serves it over stateless streamable-HTTP
+Wraps awslabs.aws-support-mcp-server (v0.1.23, awslabs/mcp@e9f2439; vendored with
+log-message changes only, see THIRD-PARTY-LICENSES) and serves it over stateless streamable-HTTP
 on 0.0.0.0:8000/mcp, which is the contract AgentCore Runtime expects for MCP protocol
 runtimes.
 
@@ -27,8 +27,7 @@ os.environ.pop("AWS_PROFILE", None)  # always use the Runtime execution role
 # The upstream package configures loguru at DEBUG when it is imported, and upstream
 # server.main() lowers it to INFO unless --debug. This entrypoint bypasses server.main(), so
 # apply the same default after the package import and before the server module (which
-# creates the Support client) is imported. DEBUG logs request parameters such as case IDs
-# and subjects. FASTMCP_LOG_LEVEL (set by the template) controls these logs and FastMCP's own.
+# creates the Support client) is imported. DEBUG logs include case IDs. FASTMCP_LOG_LEVEL (set by the template) controls these logs and FastMCP's own.
 import awslabs.aws_support_mcp_server  # noqa: E402,F401
 
 logger.remove()
