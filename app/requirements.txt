@@ -2,7 +2,7 @@
 # The full resolved set (including transitive dependencies) is in requirements.lock,
 # which build.sh installs from so that every build ships the same packages.
 boto3==1.43.89
-fastmcp==3.4.3
+fastmcp==3.4.10
 loguru==0.7.3
 pydantic==2.13.5
 uvicorn==0.52.4
